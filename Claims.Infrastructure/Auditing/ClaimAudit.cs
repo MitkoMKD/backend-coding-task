@@ -4,6 +4,8 @@
     {
         public int Id { get; set; }
 
+        public Guid EventId { get; set; }
+
         public string? ClaimId { get; set; }
 
         public DateTime Created { get; set; }

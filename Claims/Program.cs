@@ -1,51 +1,34 @@
+using Claims.Application;
 using Claims.Auditing;
-using Claims.Controllers;
+using Claims.ExceptionHandling;
+using Claims.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using MongoDB.Driver;
-using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
-using Testcontainers.MongoDb;
-using Testcontainers.MsSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Start Testcontainers for SQL Server and MongoDB
-var sqlContainer = new MsSqlBuilder(RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-        ? "mcr.microsoft.com/mssql/server:2022-latest"
-        : "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04")
-    .Build();
-
-var mongoContainer = new MongoDbBuilder("mongo:latest")
-    .Build();
-
-await sqlContainer.StartAsync();
-await mongoContainer.StartAsync();
-
-// Add services to the container.
-builder.Services
-    .AddControllers()
-    .AddJsonOptions(x =>
-    {
-        x.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
-
-builder.Services.AddDbContext<AuditContext>(options =>
-    options.UseSqlServer(sqlContainer.GetConnectionString()));
-
-builder.Services.AddDbContext<ClaimsContext>(options =>
-{
-    var client = new MongoClient(mongoContainer.GetConnectionString());
-    var database = client.GetDatabase(builder.Configuration["MongoDb:DatabaseName"]); // Use a default/test database name
-    options.UseMongoDB(database.Client, database.DatabaseNamespace.DatabaseName);
-});
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddControllers(options => options.SuppressAsyncSuffixInActionNames = false)
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddDbContext<ClaimsDbContext>(options => options.UseSqlServer(
+    builder.Configuration.GetConnectionString("MainConnection")
+    ?? throw new InvalidOperationException("Configure ConnectionStrings:MainConnection with a SQL Server connection string.")));
+builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
+builder.Services.AddScoped<ICoverRepository, CoverRepository>();
+builder.Services.AddScoped<IUnitOfWork>(services => services.GetRequiredService<ClaimsDbContext>());
+builder.Services.AddScoped<ClaimService>();
+builder.Services.AddScoped<CoverService>();
+builder.Services.AddScoped<AuditProcessor>();
+if (builder.Configuration.GetValue("Auditing:Enabled", true))
+    builder.Services.AddHostedService<AuditWorker>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -54,16 +37,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
-
 app.MapControllers();
 
-using (var scope = app.Services.CreateScope())
+if (app.Configuration.GetValue("Database:ApplyMigrations", false))
 {
-    var context = scope.ServiceProvider.GetRequiredService<AuditContext>();
-    context.Database.Migrate();
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<ClaimsDbContext>().Database.MigrateAsync();
 }
 
-app.Run();
-
-public partial class Program { }
+await app.RunAsync();
