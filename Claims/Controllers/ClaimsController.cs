@@ -6,7 +6,7 @@ namespace Claims.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class ClaimsController(ClaimService service) : ControllerBase
+public class ClaimsController(IClaimService service) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Claim>>> GetAsync(CancellationToken cancellationToken) =>

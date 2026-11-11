@@ -1,6 +1,7 @@
 using Claims.Application;
 using Claims.Auditing;
 using Claims.Models;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Claims.Infrastructure;
@@ -53,6 +54,19 @@ public class ClaimsDbContext(DbContextOptions<ClaimsDbContext> options, TimeProv
             Created = timeProvider.GetUtcNow().UtcDateTime
         });
 
-    async Task IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken) =>
-        await SaveChangesAsync(cancellationToken);
+    async Task IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new BusinessException("resource", "The resource changed. Refresh and retry.", BusinessError.Conflict);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 547 })
+        {
+            throw new BusinessException("resource", "The operation conflicts with related data or a database constraint.", BusinessError.Conflict);
+        }
+    }
 }

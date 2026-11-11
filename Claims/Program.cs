@@ -18,8 +18,8 @@ builder.Services.AddDbContext<ClaimsDbContext>(options => options.UseSqlServer(
 builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
 builder.Services.AddScoped<ICoverRepository, CoverRepository>();
 builder.Services.AddScoped<IUnitOfWork>(services => services.GetRequiredService<ClaimsDbContext>());
-builder.Services.AddScoped<ClaimService>();
-builder.Services.AddScoped<CoverService>();
+builder.Services.AddScoped<IClaimService, ClaimService>();
+builder.Services.AddScoped<ICoverService, CoverService>();
 builder.Services.AddScoped<AuditProcessor>();
 if (builder.Configuration.GetValue("Auditing:Enabled", true))
     builder.Services.AddHostedService<AuditWorker>();
