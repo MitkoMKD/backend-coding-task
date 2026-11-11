@@ -7,7 +7,7 @@ namespace Claims.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class CoversController(CoverService service) : ControllerBase
+public class CoversController(ICoverService service) : ControllerBase
 {
     [HttpPost("compute")]
     public ActionResult<decimal> ComputePremium(

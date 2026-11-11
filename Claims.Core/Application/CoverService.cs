@@ -4,7 +4,7 @@ namespace Claims.Application;
 
 public class CoverService(
     ICoverRepository covers, IClaimRepository claims, IUnitOfWork unitOfWork,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider) : ICoverService
 {
     public Task<List<Cover>> ListAsync(CancellationToken cancellationToken) => covers.ListAsync(cancellationToken);
 

@@ -68,7 +68,10 @@ away from zero.
 | `Claims.Infrastructure` | EF Core, SQL Server, repositories, migrations, auditing |
 | `Claims.Tests` | Unit and integration tests |
 
-Core is independent of the API and Infrastructure. Repositories share one EF Core
+Core is independent of the API and Infrastructure. Controllers depend on service
+interfaces; services depend on repository interfaces. Infrastructure implements
+those contracts and translates database conflicts into application errors. The
+API maps application errors to HTTP responses. Repositories share one EF Core
 unit of work. Types have separate files, with `Interfaces` and `Enums` folders.
 
 ## Background auditing

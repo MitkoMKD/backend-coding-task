@@ -70,7 +70,9 @@ public class SqlServerTests
 
             context.ChangeTracker.Clear();
             context.Covers.Remove(await context.Covers.SingleAsync(Token));
-            await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(Token));
+            var unitOfWork = (IUnitOfWork)context;
+            var conflict = await Assert.ThrowsAsync<BusinessException>(() => unitOfWork.SaveChangesAsync(Token));
+            Assert.Equal(BusinessError.Conflict, conflict.Error);
         }
         finally
         {

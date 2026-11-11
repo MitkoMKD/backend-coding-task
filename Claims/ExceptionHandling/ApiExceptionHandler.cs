@@ -1,8 +1,6 @@
 using Claims.Application;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 
 namespace Claims.ExceptionHandling;
 
@@ -31,11 +29,6 @@ public class ApiExceptionHandler(IProblemDetailsService problemDetailsService) :
                     _ => "Validation failed."
                 }
             };
-        }
-        else if (exception is DbUpdateConcurrencyException ||
-            exception is DbUpdateException { InnerException: SqlException { Number: 547 } })
-        {
-            problem = new ProblemDetails { Status = 409, Title = "The resource changed or has related records. Retry after refreshing." };
         }
         else
         {

@@ -2,7 +2,7 @@ using Claims.Models;
 
 namespace Claims.Application;
 
-public class ClaimService(IClaimRepository claims, ICoverRepository covers, IUnitOfWork unitOfWork)
+public class ClaimService(IClaimRepository claims, ICoverRepository covers, IUnitOfWork unitOfWork) : IClaimService
 {
     public Task<List<Claim>> ListAsync(CancellationToken cancellationToken) => claims.ListAsync(cancellationToken);
 
